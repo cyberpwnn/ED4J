@@ -7,8 +7,18 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.URL;
+import java.net.URLConnection;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import org.supercsv.cellprocessor.ParseInt;
+import org.supercsv.cellprocessor.constraint.NotNull;
+import org.supercsv.cellprocessor.ift.CellProcessor;
+import org.supercsv.io.CsvBeanReader;
+import org.supercsv.io.ICsvBeanReader;
+import org.supercsv.prefs.CsvPreference;
 
 import com.darkprograms.speech.synthesiser.Synthesiser;
 import com.volmit.dumpster.F;
@@ -36,6 +46,64 @@ public class ED4J
 	public static int cpip;
 	public static int cui;
 	public static int cfire;
+	public static JSONArray stationData;
+	public static JSONArray commodityData;
+	public static JSONArray moduleData;
+
+	private static void downloadMarketData() throws IOException
+	{
+		System.out.print("Populating Station Data");
+		stationData = download(new URL("https://eddb.io/archive/v5/stations.json"));
+		System.out.print("Populating Commodity Data");
+		commodityData = download(new URL("https://eddb.io/archive/v5/commodities.json"));
+		System.out.print("Populating Module Data");
+		moduleData = download(new URL("https://eddb.io/archive/v5/modules.json"));
+	}
+
+	public static void doIt(File csvm) throws FileNotFoundException, IOException
+	{
+		try(ICsvBeanReader beanReader = new CsvBeanReader(new FileReader(csvm), CsvPreference.STANDARD_PREFERENCE))
+		{
+			final String[] headers = new String[] {"id", "station_id", "commodity_id", "supply", "supply_bracket", "buy_price", "sell_price", "demand", "demand_bracket", "collected_at"};
+			final CellProcessor[] processors = getProcessors();
+			MarketSector sec;
+
+			while((sec = beanReader.read(MarketSector.class, headers, processors)) != null)
+			{
+				System.out.println(sec);
+			}
+		}
+	}
+
+	private static CellProcessor[] getProcessors()
+	{
+		final CellProcessor[] processors = new CellProcessor[] {new NotNull(new ParseInt()), new NotNull(new ParseInt()), new NotNull(new ParseInt()), new NotNull(new ParseInt()), new NotNull(new ParseInt()), new NotNull(new ParseInt()), new NotNull(new ParseInt()), new NotNull(new ParseInt()), new NotNull(new ParseInt()), new NotNull(new ParseInt()),};
+
+		return processors;
+	}
+
+	private static JSONArray download(URL u) throws IOException
+	{
+		URLConnection conn = u.openConnection();
+		long estimatedSize = conn.getContentLengthLong();
+		System.out.print(" -> Downloading: " + F.fileSize(estimatedSize));
+		char[] cbuf = new char[8192];
+		int read = 0;
+		BufferedInputStream bu = new BufferedInputStream(conn.getInputStream(), 8192);
+		BufferedReader br = new BufferedReader(new InputStreamReader(bu));
+		StringBuilder sb = new StringBuilder();
+
+		while((read = br.read(cbuf)) != -1)
+		{
+			sb.append(cbuf, 0, read);
+		}
+
+		br.close();
+		JSONArray j = new JSONArray(sb.toString());
+		System.out.println(" -> Done");
+
+		return j;
+	}
 
 	private static String getPadDistance(int pad)
 	{
@@ -218,6 +286,27 @@ public class ED4J
 			}
 		}
 
+		if(event.equals("CommitCrime"))
+		{
+			if(e.has("Fine"))
+			{
+				if(e.getString("CrimeType").equals("collidedAtSpeedInNoFireZone"))
+				{
+					talk("Fined " + e.getInt("Fine") + " credits for flying like an asshole.");
+				}
+			}
+		}
+
+		if(event.equals("RefuelAll"))
+		{
+			talk("Refuled " + F.f(e.getDouble("Amount"), 1) + " tons of fuel");
+		}
+
+		if(event.equals("FuelScoop"))
+		{
+			talk("Scooped " + F.f(e.getDouble("Scooped"), 1) + " tons of fuel");
+		}
+
 		if(event.equals("MissionCompleted"))
 		{
 			talk("Mission Complete. Plus Respect");
@@ -347,6 +436,7 @@ public class ED4J
 	{
 		try
 		{
+			downloadMarketData();
 			events = new GList<JSONObject>();
 			folder = new File(new File(System.getProperty("user.home")), "Saved Games/Frontier Developments/Elite Dangerous");
 			status = new File(folder, "Status.json");
