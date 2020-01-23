@@ -21,16 +21,41 @@ import org.supercsv.io.ICsvBeanReader;
 import org.supercsv.prefs.CsvPreference;
 
 import com.darkprograms.speech.synthesiser.Synthesiser;
+import com.sun.javafx.tk.Toolkit;
 import com.volmit.dumpster.F;
 import com.volmit.dumpster.GList;
 import com.volmit.dumpster.JSONArray;
 import com.volmit.dumpster.JSONException;
 import com.volmit.dumpster.JSONObject;
+import com.volmit.ed4j.handler.IEventHandler;
+import com.volmit.ed4j.handler.SoundEventHandler;
+import com.volmit.ed4j.handler.event.CompleteJumpEvent;
+import com.volmit.ed4j.handler.event.DockedEvent;
+import com.volmit.ed4j.handler.event.DockingRequestDeniedEvent;
+import com.volmit.ed4j.handler.event.DockingRequestGrantedEvent;
+import com.volmit.ed4j.handler.event.FuelScoopedEvent;
+import com.volmit.ed4j.handler.event.MissionAcceptedEvent;
+import com.volmit.ed4j.handler.event.MissionCompletedEvent;
+import com.volmit.ed4j.handler.event.OverheatingEvent;
+import com.volmit.ed4j.handler.event.ReceiveTextEvent;
+import com.volmit.ed4j.handler.event.RefueledEvent;
+import com.volmit.ed4j.handler.event.ScannedEvent;
+import com.volmit.ed4j.handler.event.ShipSwapEvent;
+import com.volmit.ed4j.handler.event.StartJumpEvent;
+import com.volmit.ed4j.handler.event.SupercruiseExitEvent;
+import com.volmit.ed4j.handler.event.UndockedEvent;
+import com.volmit.ed4j.state.EliteState;
+import com.volmit.ed4j.util.MarketSector;
+import com.volmit.ed4j.util.UIFocus;
 
+import javafx.application.Platform;
+import javafx.embed.swing.JFXPanel;
 import javazoom.jl.player.Player;
 
 public class ED4J
 {
+	public static final String EDDB_VERSION = "v6";
+
 	public static File target;
 	public static File status;
 	public static File folder;
@@ -49,15 +74,17 @@ public class ED4J
 	public static JSONArray stationData;
 	public static JSONArray commodityData;
 	public static JSONArray moduleData;
+	public static IEventHandler h = new SoundEventHandler();
+	public static EliteState state = new EliteState();
 
 	private static void downloadMarketData() throws IOException
 	{
 		System.out.print("Populating Station Data");
-		stationData = download(new URL("https://eddb.io/archive/v5/stations.json"));
+		stationData = download(new URL("https://eddb.io/archive/" + EDDB_VERSION + "/stations.json"));
 		System.out.print("Populating Commodity Data");
-		commodityData = download(new URL("https://eddb.io/archive/v5/commodities.json"));
+		commodityData = download(new URL("https://eddb.io/archive/" + EDDB_VERSION + "/commodities.json"));
 		System.out.print("Populating Module Data");
-		moduleData = download(new URL("https://eddb.io/archive/v5/modules.json"));
+		moduleData = download(new URL("https://eddb.io/archive/" + EDDB_VERSION + "/modules.json"));
 	}
 
 	public static void doIt(File csvm) throws FileNotFoundException, IOException
@@ -105,143 +132,102 @@ public class ED4J
 		return j;
 	}
 
-	private static String getPadDistance(int pad)
-	{
-		int c = 0;
-		int m = 1;
-		int f = 2;
-		int k = 3;
-
-		//@fuckboy:on
-		if(pad == 1) {k= m;}
-		if(pad == 2) {k= c;}
-		if(pad == 3) {k= m;}
-		if(pad == 4) {k= f;}
-		if(pad == 5) {k= c;}
-		if(pad == 6) {k= c;}
-		if(pad == 7) {k= m;}
-		if(pad == 8) {k= f;}
-		if(pad == 9) {k= c;}
-		if(pad == 10) {k= f;}
-		if(pad == 11) {k= c;}
-		if(pad == 12) {k= c;}
-		if(pad == 13) {k= c;}
-		if(pad == 14) {k= f;}
-		if(pad == 15) {k= f;}
-		if(pad == 16) {k= c;}
-		if(pad == 17) {k= c;}
-		if(pad == 18) {k= m;}
-		if(pad == 19) {k= f;}
-		if(pad == 20) {k= c;}
-		if(pad == 21) {k= c;}
-		if(pad == 22) {k= m;}
-		if(pad == 23) {k= f;}
-		if(pad == 24) {k= c;}
-		if(pad == 25) {k= f;}
-		if(pad == 26) {k= c;}
-		if(pad == 27) {k= c;}
-		if(pad == 28) {k= m;}
-		if(pad == 29) {k= m;}
-		if(pad == 30) {k= f;}
-		if(pad == 31) {k= f;}
-		if(pad == 32) {k= m;}
-		if(pad == 33) {k= m;}
-		if(pad == 34) {k= c;}
-		if(pad == 35) {k= c;}
-		if(pad == 36) {k= m;}
-		if(pad == 37) {k= m;}
-		if(pad == 38) {k= f;}
-		if(pad == 39) {k= c;}
-		if(pad == 40) {k= f;}
-		if(pad == 41) {k= c;}
-		if(pad == 42) {k= c;}
-		if(pad == 43) {k= m;}
-		if(pad == 44) {k= m;}
-		if(pad == 45) {k= f;}
-		if(k == 0) {return "front.";}
-		if(k == 1) {return "middle.";}
-		if(k == 2) {return "back.";}
-		//@fuckboy:off
-
-		return "";
-	}
-
 	private static boolean handle(JSONObject e)
 	{
 		String event = e.getString("event");
-		String station = e.has("StationName") ? e.getString("StationName") : "";
+		if(e.has("StationName"))
+		{
+			state.setStation(e.getString("StationName"));
+		}
 
 		if(event.equals("Continued"))
 		{
+			try
+			{
+				retarget();
+			}
+
+			catch(IOException ex)
+			{
+				ex.printStackTrace();
+			}
+
 			return true;
 		}
 
 		if(event.equals("Undocked"))
 		{
-			talk("Departing from " + station);
+			h.onUndocked(new UndockedEvent(e));
 		}
 
 		if(event.equals("Scanned"))
 		{
-			talk(e.getString("ScanType") + " Scan Detected");
+			h.onScanned(new ScannedEvent(e));
 		}
 
 		if(event.equals("StartJump"))
 		{
-			if(e.has("StarSystem"))
-			{
-				talk("Jumping to " + e.getString("StarSystem") + ". Star class, " + e.getString("StarClass") + ".");
-			}
+			h.onStartJump(new StartJumpEvent(e));
 		}
 
 		if(event.equals("FSDJump"))
 		{
-			talk("Welcome to " + e.getString("StarSystem") + ", " + e.getString("SystemSecurity_Localised"));
+			h.onCompleteJump(new CompleteJumpEvent(e));
 		}
 
 		if(event.equals("ReceiveText"))
 		{
-			if(e.getString("Message").toLowerCase().contains("hostile") || e.getString("Message").toLowerCase().contains("pirate"))
-			{
-				talk("Hostile Vessel Detected.");
-			}
+			h.onReceiveText(new ReceiveTextEvent(e));
 		}
 
 		if(event.equals("SupercruiseExit"))
 		{
-			if(e.getString("BodyType").equals("Station"))
-			{
-				talk("Welcome to " + e.getString("Body") + ".");
-			}
+			h.onSupercruiseExit(new SupercruiseExitEvent(e));
 		}
 
 		if(event.equals("DockingDenied"))
 		{
-			talk("Request Denied. " + e.getString("Reason"));
+			h.onDockingRequestDenied(new DockingRequestDeniedEvent(e));
 		}
 
 		if(event.equals("DockingGranted"))
 		{
-			String m = getPadDistance(e.getInt("LandingPad"));
-			if(!m.isEmpty())
-			{
-				talk("Your landing pad is located near the " + m);
-			}
+			h.onDockingRequestGranted(new DockingRequestGrantedEvent(e));
 		}
 
 		if(event.equals("Docked"))
 		{
-			talk(station + " is experiencing a " + e.getString("FactionState"));
+			h.onDocked(new DockedEvent(e));
+		}
+
+		if(event.equals("HeatWarning"))
+		{
+			h.onOverheating(new OverheatingEvent(e));
 		}
 
 		if(event.equals("MissionAccepted"))
 		{
-			talk("Mission Accepted");
+			h.onMissionAccepted(new MissionAcceptedEvent(e));
 		}
 
 		if(event.equals("ShipyardSwap"))
 		{
-			talk("Swapping your " + e.getString("StoreOldShip").replaceAll("-", " ") + " to your " + e.getString("ShipType_Localised").replaceAll("-", " "));
+			h.onShipSwapped(new ShipSwapEvent(e));
+		}
+
+		if(event.equals("RefuelAll"))
+		{
+			h.onRefueled(new RefueledEvent(e));
+		}
+
+		if(event.equals("FuelScoop"))
+		{
+			h.onFuelScooped(new FuelScoopedEvent(e));
+		}
+
+		if(event.equals("MissionCompleted"))
+		{
+			h.onMissionCompleted(new MissionCompletedEvent(e));
 		}
 
 		if(event.equals("StoredShips"))
@@ -297,21 +283,6 @@ public class ED4J
 			}
 		}
 
-		if(event.equals("RefuelAll"))
-		{
-			talk("Refuled " + F.f(e.getDouble("Amount"), 1) + " tons of fuel");
-		}
-
-		if(event.equals("FuelScoop"))
-		{
-			talk("Scooped " + F.f(e.getDouble("Scooped"), 1) + " tons of fuel");
-		}
-
-		if(event.equals("MissionCompleted"))
-		{
-			talk("Mission Complete. Plus Respect");
-		}
-
 		return false;
 	}
 
@@ -359,18 +330,24 @@ public class ED4J
 			{
 				cpip = cv;
 				printPips();
+				state.setPips(pipSystems, pipEngines, pipWeapons);
+				h.onPipsChanged(pipSystems, pipEngines, pipWeapons);
 			}
 
 			if(cui != uiFocus)
 			{
 				cui = uiFocus;
+				state.setUIFocus(UIFocus.values()[cui]);
 				System.out.println("UI Focus: " + F.capitalize(UIFocus.values()[cui].name().toLowerCase()));
+				h.onUiFocus(UIFocus.values()[cui]);
 			}
 
 			if(cfire != fireGroup)
 			{
 				cfire = fireGroup;
+				state.setFireGroup(cfire);
 				System.out.println("Fire Group: #" + cfire);
+				h.onFireGroup(cfire);
 			}
 		}
 
@@ -434,43 +411,52 @@ public class ED4J
 
 	public static void main(String[] a)
 	{
-		try
+		new JFXPanel(); // this will prepare JavaFX toolkit and environment
+		Platform.runLater(new Runnable()
 		{
-			downloadMarketData();
-			events = new GList<JSONObject>();
-			folder = new File(new File(System.getProperty("user.home")), "Saved Games/Frontier Developments/Elite Dangerous");
-			status = new File(folder, "Status.json");
-
-			if(!folder.exists())
-			{
-				System.out.println("Unable to locate journal files\n" + folder.getAbsolutePath());
-				System.exit(404);
-			}
-
-			System.out.println("Journal Directory: " + folder.getAbsolutePath());
-			System.out.println("Status File: " + status.getAbsolutePath());
-			retarget();
-			svc = Executors.newWorkStealingPool(16);
-
-			while(true)
+			@Override
+			public void run()
 			{
 				try
 				{
-					tick();
-					Thread.sleep(50);
+					downloadMarketData();
+					events = new GList<JSONObject>();
+					folder = new File(new File(System.getProperty("user.home")), "Saved Games/Frontier Developments/Elite Dangerous");
+					status = new File(folder, "Status.json");
+
+					if(!folder.exists())
+					{
+						System.out.println("Unable to locate journal files\n" + folder.getAbsolutePath());
+						System.exit(404);
+					}
+
+					System.out.println("Journal Directory: " + folder.getAbsolutePath());
+					System.out.println("Status File: " + status.getAbsolutePath());
+					retarget();
+					svc = Executors.newWorkStealingPool(16);
+
+					while(true)
+					{
+						try
+						{
+							tick();
+							Thread.sleep(50);
+						}
+
+						catch(InterruptedException e)
+						{
+							e.printStackTrace();
+						}
+					}
 				}
 
-				catch(InterruptedException e)
+				catch(Exception e1)
 				{
-					e.printStackTrace();
+					e1.printStackTrace();
 				}
 			}
-		}
+		});
 
-		catch(Exception e1)
-		{
-			e1.printStackTrace();
-		}
 	}
 
 	public static void retarget() throws IOException

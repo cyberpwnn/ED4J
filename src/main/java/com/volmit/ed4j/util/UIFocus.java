@@ -1,4 +1,4 @@
-package com.volmit.ed4j;
+package com.volmit.ed4j.util;
 
 public enum UIFocus
 {

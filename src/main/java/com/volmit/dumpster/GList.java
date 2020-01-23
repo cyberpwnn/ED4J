@@ -258,6 +258,16 @@ public class GList<T> extends ArrayList<T>
 	 */
 	public T pickRandom()
 	{
+		if(size() == 0)
+		{
+			return null;
+		}
+
+		if(size() == 1)
+		{
+			return get(0);
+		}
+
 		Random random = new Random();
 		return get(random.nextInt(size()));
 	}
