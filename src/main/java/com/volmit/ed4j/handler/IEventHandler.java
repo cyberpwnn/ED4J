@@ -46,7 +46,13 @@ public interface IEventHandler
 	public void onMissionCompleted(MissionCompletedEvent e);
 
 	public void onFuelScooped(FuelScoopedEvent e);
+	
+	public void onReceiveText(String channel, String messageLocalized, String from, String  message);
+	
+	public void onLoadGame(String commander, String ship, long credits);
 
+	public void onLocation();
+	
 	public void onRefueled(RefueledEvent e);
 
 	public void onFireGroup(int cfire);

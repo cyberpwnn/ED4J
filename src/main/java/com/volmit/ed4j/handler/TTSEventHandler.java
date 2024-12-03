@@ -156,4 +156,25 @@ public class TTSEventHandler implements IEventHandler
 		// TODO Auto-generated method stub
 		
 	}
+
+	@Override
+	public void onReceiveText(String channel, String messageLocalized, String from, String message)
+	{
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void onLoadGame(String commander, String ship, long credits)
+	{
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void onLocation()
+	{
+		// TODO Auto-generated method stub
+		
+	}
 }

@@ -2,6 +2,7 @@ package com.volmit.ed4j.util;
 
 public class MarketSector
 {
+	private int id;
 	private int stationId;
 	private int commodityId;
 	private int idSupply;
@@ -13,6 +14,11 @@ public class MarketSector
 	private int demandBracket;
 	private int collectedAt;
 
+	public MarketSector()
+	{
+		
+	}
+	
 	public MarketSector(int stationId, int commodityId, int idSupply, int supply, int supplyBracket, int buyPrice, int sellPrice, int demand, int demandBracket, int collectedAt)
 	{
 		this.stationId = stationId;
@@ -26,13 +32,25 @@ public class MarketSector
 		this.demandBracket = demandBracket;
 		this.collectedAt = collectedAt;
 	}
+	
+	
+
+	public int getId()
+	{
+		return id;
+	}
+
+	public void setId(int id)
+	{
+		this.id = id;
+	}
 
 	public int getStationId()
 	{
 		return stationId;
 	}
 
-	public void setStationId(int stationId)
+	public void setStation_id(int stationId)
 	{
 		this.stationId = stationId;
 	}
@@ -42,7 +60,7 @@ public class MarketSector
 		return commodityId;
 	}
 
-	public void setCommodityId(int commodityId)
+	public void setCommodity_id(int commodityId)
 	{
 		this.commodityId = commodityId;
 	}
@@ -51,8 +69,10 @@ public class MarketSector
 	{
 		return idSupply;
 	}
+	
+	
 
-	public void setIdSupply(int idSupply)
+	public void setId_supply(int idSupply)
 	{
 		this.idSupply = idSupply;
 	}
@@ -72,7 +92,7 @@ public class MarketSector
 		return supplyBracket;
 	}
 
-	public void setSupplyBracket(int supplyBracket)
+	public void setSupply_bracket(int supplyBracket)
 	{
 		this.supplyBracket = supplyBracket;
 	}
@@ -82,7 +102,7 @@ public class MarketSector
 		return buyPrice;
 	}
 
-	public void setBuyPrice(int buyPrice)
+	public void setBuy_price(int buyPrice)
 	{
 		this.buyPrice = buyPrice;
 	}
@@ -92,7 +112,7 @@ public class MarketSector
 		return sellPrice;
 	}
 
-	public void setSellPrice(int sellPrice)
+	public void setSell_price(int sellPrice)
 	{
 		this.sellPrice = sellPrice;
 	}
@@ -112,7 +132,7 @@ public class MarketSector
 		return demandBracket;
 	}
 
-	public void setDemandBracket(int demandBracket)
+	public void setDemand_bracket(int demandBracket)
 	{
 		this.demandBracket = demandBracket;
 	}
@@ -122,7 +142,7 @@ public class MarketSector
 		return collectedAt;
 	}
 
-	public void setCollectedAt(int collectedAt)
+	public void setCollected_at(int collectedAt)
 	{
 		this.collectedAt = collectedAt;
 	}

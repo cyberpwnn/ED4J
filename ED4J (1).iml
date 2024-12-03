@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module org.jetbrains.idea.maven.project.MavenProjectsManager.isMavenModule="true" type="JAVA_MODULE" version="4">
+  <component name="MavenCustomPomFilePath">
+    <option name="mavenPomFileUrl" value="file://$MODULE_DIR$/dependency-reduced-pom.xml" />
+  </component>
+  <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_1_8">
+    <output url="file://$MODULE_DIR$/target/classes" />
+    <output-test url="file://$MODULE_DIR$/target/test-classes" />
+    <content url="file://$MODULE_DIR$/src/main/java">
+      <sourceFolder url="file://$MODULE_DIR$/src/main/java" isTestSource="false" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="Maven: javazoom:jlayer:1.0.1" level="project" />
+    <orderEntry type="library" name="Maven: org.apache.commons:commons-csv:1.5" level="project" />
+    <orderEntry type="library" name="Maven: net.sf.supercsv:super-csv:2.3.1" level="project" />
+    <orderEntry type="library" name="Maven: org.slf4j:slf4j-api:1.7.4" level="project" />
+    <orderEntry type="library" name="Maven: org.openjfx:javafx-controls:11" level="project" />
+    <orderEntry type="library" name="Maven: org.openjfx:javafx-controls:win:11" level="project" />
+    <orderEntry type="library" name="Maven: org.openjfx:javafx-graphics:11" level="project" />
+    <orderEntry type="library" name="Maven: org.openjfx:javafx-graphics:win:11" level="project" />
+    <orderEntry type="library" name="Maven: org.openjfx:javafx-base:11" level="project" />
+    <orderEntry type="library" name="Maven: org.openjfx:javafx-base:win:11" level="project" />
+    <orderEntry type="library" name="Maven: org.openjfx:javafx-swing:16-ea+3" level="project" />
+    <orderEntry type="library" name="Maven: org.openjfx:javafx-swing:win:16-ea+3" level="project" />
+    <orderEntry type="library" name="Maven: org.xerial:sqlite-jdbc:3.32.3.2" level="project" />
+  </component>
+</module>

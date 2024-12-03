@@ -1,10 +1,16 @@
 package com.volmit.ed4j.handler;
 
+import java.awt.AWTException;
+import java.awt.Robot;
+import java.awt.event.KeyEvent;
 import java.io.File;
 import java.io.FileInputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.volmit.dumpster.F;
 import com.volmit.dumpster.GList;
+import com.volmit.ed4j.ED4J;
 import com.volmit.ed4j.handler.event.CompleteJumpEvent;
 import com.volmit.ed4j.handler.event.DockedEvent;
 import com.volmit.ed4j.handler.event.DockingRequestDeniedEvent;
@@ -20,6 +26,7 @@ import com.volmit.ed4j.handler.event.ShipSwapEvent;
 import com.volmit.ed4j.handler.event.StartJumpEvent;
 import com.volmit.ed4j.handler.event.SupercruiseExitEvent;
 import com.volmit.ed4j.handler.event.UndockedEvent;
+import com.volmit.ed4j.util.LandingPads;
 import com.volmit.ed4j.util.UIFocus;
 
 import javazoom.jl.player.Player;
@@ -27,71 +34,147 @@ import javazoom.jl.player.Player;
 public class SoundEventHandler implements IEventHandler
 {
 	private Player current = null;
-	private File folder;
+	private File root;
+	private String currentVoice;
+	private List<Runnable> q;
 
-	public SoundEventHandler()
+	public SoundEventHandler(File root)
 	{
-		folder = new File("sounds");
-		folder.mkdirs();
+		this.root = root;
+		q = new ArrayList<>();
+		updateVoice();
+		play("Start");
+
+		new Thread(() ->
+		{
+			while(true)
+			{
+				try
+				{
+					Thread.sleep(250);
+				}
+
+				catch(InterruptedException e)
+				{
+					e.printStackTrace();
+				}
+				Runnable r = null;
+
+				synchronized(q)
+				{
+					if(q.size() > 0)
+					{
+						updateVoice();
+						r = q.get(0);
+						q.remove(0);
+					}
+				}
+
+				if(r != null)
+				{
+					try
+					{
+						r.run();
+					}
+
+					catch(Throwable e)
+					{
+						e.printStackTrace();
+					}
+				}
+			}
+		}).start();
+	}
+
+	private void updateVoice()
+	{
+		try
+		{
+			currentVoice = "EDEN";
+
+			for(File i : new File("voiceconfig").listFiles())
+			{
+				currentVoice = i.getName();
+				break;
+			}
+		}
+
+		catch(Throwable e)
+		{
+
+		}
+	}
+
+	public File getFolder()
+	{
+		return new File(root, currentVoice + "/events");
 	}
 
 	public void play(String f)
 	{
-		File fl = new File(folder, f);
-
-		if(!fl.exists())
+		synchronized(q)
 		{
-			fl.mkdirs();
-		}
-
-		GList<File> mp3s = new GList<>();
-
-		for(File i : fl.listFiles())
-		{
-			if(i.getName().endsWith(".mp3"))
+			q.add(() ->
 			{
-				mp3s.add(i);
-			}
-		}
+				File fl = new File(getFolder(), f);
 
-		if(mp3s.isEmpty())
-		{
-			System.out.println("Missing MP3s in " + fl.getAbsolutePath());
-		}
-
-		else
-		{
-			File ff = mp3s.pickRandom();
-			System.out.print("Playing " + fl.getName() + "/" + ff.getName() + " -> ");
-			try
-			{
-				if(current != null)
+				if(!fl.exists())
 				{
-					current.close();
-					current = null;
-					System.out.println("Interrupted");
+					fl.mkdirs();
 				}
 
-				new Thread(() ->
+				GList<File> mp3s = new GList<>();
+				
+				if(fl.isFile())
 				{
+					return;
+				}
+				
+				for(File i : fl.listFiles())
+				{
+					if(i.getName().endsWith(".mp3"))
+					{
+						mp3s.add(i);
+					}
+				}
+
+				if(mp3s.isEmpty())
+				{
+					System.out.println("Missing MP3s in " + fl.getAbsolutePath());
+				}
+
+				else
+				{
+					File ff = mp3s.pickRandom();
+					System.out.print("Playing " + fl.getName() + "/" + ff.getName() + " -> ");
 					try
 					{
-						Player p = new Player(new FileInputStream(ff));
-						p.play();
-						System.out.println("Done");
+						if(current != null)
+						{
+							current.close();
+							current = null;
+							System.out.println("Interrupted");
+						}
+
+						try
+						{
+							Player p = new Player(new FileInputStream(ff));
+							p.play();
+							System.out.println("Done");
+						}
+
+						catch(Throwable x)
+						{
+							x.printStackTrace();
+						}
 					}
 
-					catch(Throwable x)
+					catch(Throwable e)
 					{
-						x.printStackTrace();
+						e.printStackTrace();
 					}
-				}).start();
-			}
-
-			catch(Throwable e)
-			{
-				e.printStackTrace();
-			}
+				}
+			});
 		}
 	}
 
@@ -174,7 +257,17 @@ public class SoundEventHandler implements IEventHandler
 	@Override
 	public void onDockingRequestGranted(DockingRequestGrantedEvent e)
 	{
-		play("Docking Granted");
+		
+		String m = LandingPads.getPadDistance(e.getLandingPad());
+		if(!m.isEmpty())
+		{
+			play("Docking Granted " + F.capitalize(m));
+		}
+		
+		else
+		{
+			play("Docking Granted");
+		}
 	}
 
 	@Override
@@ -187,6 +280,7 @@ public class SoundEventHandler implements IEventHandler
 	public void onOverheating(OverheatingEvent e)
 	{
 		play("Overheating");
+		robot(KeyEvent.VK_H);
 	}
 
 	@Override
@@ -199,6 +293,33 @@ public class SoundEventHandler implements IEventHandler
 	public void onShipSwapped(ShipSwapEvent e)
 	{
 		play("Ship Swapped");
+	}
+
+	private void robot(int code)
+	{
+		try
+		{
+			Robot robot = new Robot(ED4J.device);
+			robot.keyPress(code);
+
+			try
+			{
+				Thread.sleep(200);
+			}
+
+			catch(InterruptedException e)
+			{
+				e.printStackTrace();
+			}
+
+			robot.keyRelease(code);
+			System.out.println("Pressed " + KeyEvent.getKeyText(code) + " on Monitor " + ED4J.monitor);
+		}
+
+		catch(AWTException e)
+		{
+			e.printStackTrace();
+		}
 	}
 
 	@Override
@@ -217,5 +338,23 @@ public class SoundEventHandler implements IEventHandler
 	public void onRefueled(RefueledEvent e)
 	{
 		play("Refueled");
+	}
+
+	@Override
+	public void onReceiveText(String channel, String messageLocalized, String from, String message)
+	{
+		
+	}
+
+	@Override
+	public void onLoadGame(String commander, String ship, long credits)
+	{
+		play("Welcome Back");
+	}
+
+	@Override
+	public void onLocation()
+	{
+		
 	}
 }

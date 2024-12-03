@@ -31,8 +31,8 @@
   </build>
   <repositories>
     <repository>
-      <id>volmit</id>
-      <url>http://nexus.volmit.com/content/repositories/volmit</url>
+      <id>bcn</id>
+      <url>http://bytecode.ninja/repository/bcn/</url>
     </repository>
   </repositories>
   <properties>
